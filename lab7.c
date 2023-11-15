@@ -3,6 +3,8 @@
 # include <stdbool.h>
 # include <string.h>
 # include <ctype.h>
+# include <time.h>
+# define 
 
 // Global error output
 const char *error_output;
@@ -41,7 +43,6 @@ void callError(char *message) {
 Student_t *createNode() {
 	Student_t *node = (Student_t *) malloc(sizeof(Student_t));
 	if (node == NULL) callError("Error: Memory could not be allocated.");
-
 	node->first_name = NULL;
 	node->last_name = NULL;
 	node->a_number = NULL;
@@ -62,8 +63,10 @@ void appendList(Student_t **head, Student_t *next) {
 		*head = next;
 		return;
 	}
-
-	while (current->next != NULL) current = current->next;
+	while (current->next != NULL) {
+		checkANumber(current, next); // Per node, check if A number is unique
+		current = current->next;
+	}
 	current->next = next;
 }
 
@@ -111,6 +114,7 @@ int compareByANumber(Student_t *a, Student_t *b) {
 	if (a->a_number == NULL && b->a_number != NULL) return 1;
 	if (a->a_number != NULL && b->a_number == NULL) return -1;
 	if (a->a_number == NULL && b->a_number == NULL) return 0;
+	
 	return strcmp(a->a_number, b->a_number);
 }
 
@@ -132,21 +136,61 @@ int compareStudents(Student_t *a, Student_t *b) {
 }
 
 /**
- * Function to sort a linked list using merge sort.
+ * Function to randomly select a pivot.
+ * Returns a random number between low and high.
+ */
+int randomPivot(int low, int high) {
+	srand(time(NULL)); // Seed random number generator
+	return rand() % (high - low + 1) + low; // Return random number between low and high
+}
+
+/**
+ * Function to swap two students.
+ * Swaps by all fields.
+ */
+void swap(Student_t *a, Student_t *b) {
+	Student_t temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
+/**
+ * Function to partition the linked list.
+ * Partitions by all fields.
+ */
+int partitionList(Student_t **head, int low, int high) {
+	Student_t *pivot = *head;
+	for (int i = 0; i < high; i++) pivot = pivot->next;
+	int pivot_index = randomPivot(low, high); // Get random pivot index
+	int i = low - 1;
+
+	for (int j = low; j < high; j++) {
+		Student_t *current = *head;
+		for (int k = 0; k < j; k++) current = current->next; // Get current node
+		if (compareStudents(current, pivot) <= 0) { // Compare current node to pivot
+			i++;
+			Student_t *current_i = *head;
+			for (int k = 0; k < i; k++) current_i = current_i->next;
+			swap(current_i, current);
+		}
+	}
+	Student_t *current_i = *head;
+	for (int k = 0; k < i + 1; k++) current_i = current_i->next;
+	swap(current_i, pivot);
+
+	return i + 1;
+}
+
+/**
+ * Function to sort a linked list using quick sort.
  * Sorts by all fields.
  */
-void sortList(Student_t **head) {
-	if (*head == NULL || (*head)->next == NULL) return;
-
-	Student_t *left = NULL;
-	Student_t *right = NULL;
-
-	splitList(*head, &left, &right);
-
-	sortList(&left);
-	sortList(&right);
-
-	*head = mergeList(left, right);
+void sortList(Student_t **head, int low, int high) {
+	if (low < high) {
+		int pivot = partitionList(head, low, high);
+		sortList(head, low, pivot - 1);
+		sortList(head, pivot + 1, high);
+	}
 }
 
 /**
@@ -178,19 +222,9 @@ void addANumber(char *a_number, Student_t *node) {
 	if (a_number[0] != 'A') callError(error_message); // If the a_number does not start with 'A', error	
 	for (int i = 1; i < strlen(a_number); i++) // If the a_number contains non-digits, error
 		if (!isdigit(a_number[i])) callError(error_message);
+	
 	node->a_number = strdup(a_number);
 	if (node->a_number == NULL) callError(error_message);
-}
-
-/**
- * Function to check if unique A number.
- */
-void isUniqueANumber(char *a_number, Student_t *head) {
-	Student_t *current = head;
-	while (current != NULL) {
-		if (strcmp(current->a_number, a_number) == 0) callError("Error: Duplicate A number.");
-		current = current->next;
-	}
 }
 
 /**
@@ -201,44 +235,23 @@ void addGrade(char *grade, char *type, Student_t *node) {
 	char *error_message = "Error: Invalid midterm grade.";
 	char *endptr;
 	long val = strtol(grade, &endptr, 10); // Convert string to long
-	if (*endptr != '\0') callError(error_message); // If the midterm contains non-digits, error
-	if (val < 0 || val > 100) callError(error_message); // If the midterm is not in range, error
-	if (data[0] == '0' && strlen(data) > 1) callError(error_message); // If the midterm starts with '0', error
-	node->midterm = strdup(midterm);
-	if (node->midterm == NULL) callError(error_message);
+	if (*endptr != '\0') callError(error_message); // If the grade contains non-digits, error
+	if (val < 0 || val > 100) callError(error_message); // If the grade is not in range, error
+	if (data[0] == '0' && strlen(data) > 1) callError(error_message); // If the grade starts with '0', error
+	switch (type) {
+		case "midterm": node->midterm = strdup(grade); break;
+		case "final": node->final = strdup(grade); break;
+		default: callError("Error: Invalid grade type.");
+	}
 }
 
 /**
- * Function to add a Student to a linked list.
+ * Function to check if unique A number.
+ * If the A number is not unique, error.
  */
-void addStudent(Student_t **head, Student_t **current, int option) {
-		// Append Student to linked list
-		switch (option) {
-			case 1: // Domestic
-				if (strcmp((*current)->status, "D") == 0) {
-					appendList(head, createNode());
-					*current = (*current)->next;
-				} else {
-					freeList(*current);
-					*current = createNode();
-				}
-				break;
-			case 2: // International
-				if (strcmp((*current)->status, "I") == 0) { 
-					appendList(head, createNode());
-					*current = (*current)->next;
-				} else {
-					freeList(*current);
-					*current = createNode();
-				}
-				break;
-			case 3: // All
-				appendList(head, createNode());
-				*current = (*current)->next;
-				break;
-			default: callError("Error: Invalid option.");
-		}
-
+void checkANumber(Student_t *a, Student_t *b) {
+	if (a->a_number == NULL || b->a_number == NULL) return;
+	if (strcmp(a->a_number, b->a_number) == 0) callError("Error: Duplicate A number.");
 }
 
 /**
@@ -286,7 +299,7 @@ void readFile(FILE *input, Student_t *head, const int option) {
 			fclose(input);
 			callError("Error: Consecutive spaces is invalid format.");
 		}
-		if (word_count > 6) { // Error handle too many words
+		if (word_count > 5) { // Error handle too many words
 			free(buffer);
 			fclose(input);
 			callError("Error: Too many fields."); 
@@ -344,7 +357,7 @@ void readFile(FILE *input, Student_t *head, const int option) {
 			space_count = 0;
 		
 			// Append Student to linked list
-			addStudent(&head, &current, option);
+			appendList(&head, current);
 		}
 		characters++;
 	} // End of while loop
@@ -392,13 +405,14 @@ void writeFile(FILE *output, Student_t *head) {
  * 		"Mary Jackson A01234567 100 100"
  */
 int main(int argc, char *argv[]) {
+	srand(time(NULL)); // Seed random number generator
+
 	char *ANum = "A01351112";
 	FILE *outputFile = fopen(ANum, "w");
 	if (outputFile == NULL) {
 		printf("Error: Failed to create output file.\n");
 		return 1;
 	}
-
 	fclose(outputFile);
 
 	if (argc != 4) {
