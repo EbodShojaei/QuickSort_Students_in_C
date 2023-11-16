@@ -54,19 +54,20 @@ Student_t *createNode() {
  * Function to append a node to the end of the linked list.
  * If the head is NULL, then the head is the node.
  */
-void appendList(Student_t **head, Student_t *next) {
+void appendList(Student_t **head, Student_t *new_node) {
 	Student_t *current = *head;
+
 	if (current == NULL) {
-		*head = next;
+		*head = new_node;
 		return;
 	}
 	while (current->next != NULL) {
-		if (current->a_number != NULL && next->a_number != NULL)
-			if (strcmp(current->a_number, next->a_number) == 0)
+		if (current->a_number != NULL && new_node->a_number != NULL)
+			if (strcmp(current->a_number, new_node->a_number) == 0)
 				callError("Error: Duplicate A number.");
 		current = current->next;
 	}
-	current->next = next;
+	current->next = new_node;
 }
 
 /**
@@ -224,7 +225,6 @@ int compareByANumber(Student_t *a, Student_t *b) {
 	long num_b = strtol(b->a_number + 1, NULL, 10);
 	if (num_a > num_b) return 1;
 	if (num_a < num_b) return -1;
-	if (num_a == num_b) callError("Error: Duplicate A number."); // Error handle duplicate A number
 }
 
 /**
@@ -355,10 +355,10 @@ void processWord(char *word, Student_t *current, int word_count) {
 /**
  * Function to read text from input file. 
  */ 
-void readFile(FILE *input, Student_t *head, int *node_count) {
+void readFile(FILE *input, Student_t **head, int *node_count) {
 	if (input == NULL) callError("Error: Could not read file."); // Error handle reading file
 
-	Student_t *current = head;
+	Student_t *current = createNode();
 	int size = 20;
 	char *buffer = (char *) malloc(sizeof(char) * size);
 	if (buffer == NULL) callError("Error: Memory could not be allocated.");
@@ -438,9 +438,8 @@ void readFile(FILE *input, Student_t *head, int *node_count) {
 			if (space_count > 1) callError("Error: Trailing spaces is invalid format.");
 		
 			// Append Student to linked list
-			Student_t *new_node = createNode();
-			appendList(&head, new_node);
-			current = new_node;
+			appendList(head, current);
+			current = createNode();
 			if (current != NULL) node_count++;
 
 			// Reset counts for next line
@@ -520,7 +519,7 @@ int main(int argc, char *argv[]) {
 	}
 	Student_t *head = createNode();
 	int node_count = 0;
-	readFile(file, head, &node_count);
+	readFile(file, &head, &node_count);
 	head = quickSort(&head, &node_count);
 	fclose(file);
 
