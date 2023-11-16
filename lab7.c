@@ -4,7 +4,6 @@
 # include <string.h>
 # include <ctype.h>
 # include <time.h>
-# define 
 
 // Global error output
 const char *error_output;
@@ -83,14 +82,110 @@ void freeList(Student_t *head) {
 }
 
 /**
+ * Function to check if valid name.
+ * Valid name contains letters.
+ * Checks first name and last name.
+ */
+void checkName(char *name) {
+	char *error_message = "Error: Invalid first name.";
+	if (strlen(name) == 0) callError(error_message); // If the name is empty, error
+	
+	// If the name does not contain letters, error.
+	for (int i = 0; i < strlen(name); i++)
+		if (!isalpha(name[i])) callError(error_message);
+}
+
+/**
+ * Function to check if valid A number.
+ * Valid A number starts with 'A' followed by 7 digits.
+ */
+void checkANumber(char *a_number) {
+	char *error_message = "Error: Invalid A number.";
+	if (strlen(a_number) != 8) callError(error_message); // If the a_number is not size of 8, error
+	if (a_number[0] != 'A') callError(error_message); // If the a_number does not start with 'A', error	
+	for (int i = 1; i < strlen(a_number); i++) // If the a_number contains non-digits, error
+		if (!isdigit(a_number[i])) callError(error_message);
+}
+
+/**
+ * Function to check if valid grade.
+ * Valid grade contains digits.
+ * Does not start with '0'.
+ * Is in range of 0 to 100.
+ */
+void checkGrade(char *data) {
+	char *error_message = "Error: Invalid midterm grade.";
+	char *endptr;
+	long grade = strtol(data, &endptr, 10); // Convert string to long
+	if (*endptr != '\0') callError(error_message); // If the grade contains non-digits, error
+	if (data[0] == '0' && strlen(data) > 1) callError(error_message); // If the grade starts with '0', error
+	if (grade < 0 || grade > 100) callError(error_message); // If the grade is not in range, error
+}
+
+int checkAverage(char *midterm, char *final, int option) {
+	checkGrade(midterm);
+	checkGrade(final);
+	long midterm_grade = strtol(midterm, NULL, 10); // Convert string to long
+	long final_grade = strtol(final, &endptr, 10); // Convert string to long	
+	long average = (midterm_grade + final_grade) / 2;
+	
+	switch (option) {
+		case 1: if (average >= 90 && <= 100) return 0;
+		case 2: if (average >= 80 && average < 90) return 0;
+		case 3: if (average >= 70 && average < 80) return 0;
+		case 4: if (average >= 60 && average < 70) return 0;
+		case 5: if (average >= 0 && average < 60) return 0;
+		default: callError("Error: Invalid option.");
+	}
+}
+
+/**
+ * Function to add name to Student struct.
+ */
+void addName(char *name, char *type, Student_t *node) {
+	checkName(name);
+	switch (type) {
+		case "first": node->first_name = strdup(name); break;
+		case "last": node->last_name = strdup(name); break;
+		default: callError("Error: Invalid name type.");
+	}
+}
+
+/**
+ * Function to add A number to Student struct.
+ * Valid A number contains 8 digits.
+ * Starts with 'A'.
+ */
+void addANumber(char *a_number, Student_t *node) {
+	checkANumber(a_number);
+	node->a_number = strdup(a_number);
+	if (node->a_number == NULL) callError(error_message);
+}
+
+/**
+ * Function to add grade to Student struct.
+ * Type is either midterm or final.
+ */
+void addGrade(char *grade, char *type, Student_t *node) {
+	checkGrade(grade);
+	switch (type) {
+		case "midterm": node->midterm = strdup(grade); break;
+		case "final": node->final = strdup(grade); break;
+		default: callError("Error: Invalid grade type.");
+	}
+}
+
+/**
  * Function to compare by last name.
  * NULL precedes non-NULL.
  */
 int compareByLastName(Student_t *a, Student_t *b) {
+	if (a->last_name != NULL && b->last_name != NULL) 
+		{ checkName(a->last_name); checkName(b->last_name); }
 	if (a->last_name == NULL && b->last_name != NULL) return 1;
 	if (a->last_name != NULL && b->last_name == NULL) return -1;
 	if (a->last_name == NULL && b->last_name == NULL) return 0;
-
+	
 	return strcmp(a->last_name, b->last_name);
 }
 
@@ -99,6 +194,8 @@ int compareByLastName(Student_t *a, Student_t *b) {
  * NULL precedes non-NULL.
  */
 int compareByFirstName(Student_t *a, Student_t *b) {
+	if (a->first_name != NULL && b->first_name != NULL) 
+		{ checkName(a->first_name); checkName(b->first_name); }
 	if (a->first_name == NULL && b->first_name != NULL) return 1;
 	if (a->first_name != NULL && b->first_name == NULL) return -1;
 	if (a->first_name == NULL && b->first_name == NULL) return 0;
@@ -111,11 +208,53 @@ int compareByFirstName(Student_t *a, Student_t *b) {
  * NULL precedes non-NULL.
  */
 int compareByANumber(Student_t *a, Student_t *b) {
+	if (a->a_number != NULL && b->a_number != NULL) 
+		{ checkANumber(a->a_number); checkANumber(b->a_number); }
 	if (a->a_number == NULL && b->a_number != NULL) return 1;
 	if (a->a_number != NULL && b->a_number == NULL) return -1;
 	if (a->a_number == NULL && b->a_number == NULL) return 0;
 	
-	return strcmp(a->a_number, b->a_number);
+	long num_a = strtol(a->a_number + 1, NULL, 10);
+	long num_b = strtol(b->a_number + 1, NULL, 10);
+	if (num_a > num_b) return 1;
+	if (num_a < num_b) return -1;
+	if (num_a == num_b) callError("Error: Duplicate A number."); // Error handle duplicate A number
+}
+
+/**
+ * Function to compare by midterm grade.
+ * NULL precedes non-NULL.
+ */
+int compareByMidterm(Student_t *a, Student_t *b) {
+	if (a->midterm != NULL && b->midterm != NULL) 
+		{ checkGrade(a->midterm); checkGrade(b->midterm); }
+	if (a->midterm == NULL && b->midterm != NULL) return 1;
+	if (a->midterm != NULL && b->midterm == NULL) return -1;
+	if (a->midterm == NULL && b->midterm == NULL) return 0;
+
+	long num_a = strtol(a->midterm, NULL, 10);
+	long num_b = strtol(b->midterm, NULL, 10);
+	if (num_a > num_b) return 1;
+	if (num_a < num_b) return -1;
+	if (num_a == num_b) return 0;
+}
+
+/**
+ * Function to compare by final grade.
+ * NULL precedes non-NULL.
+ */
+int compareByFinal(Student_t *a, Student_t *b) {
+	if (a->final != NULL && b->final != NULL) 
+		{ checkGrade(a->final); checkGrade(b->final); }
+	if (a->final == NULL && b->final != NULL) return 1;
+	if (a->final != NULL && b->final == NULL) return -1;
+	if (a->final == NULL && b->final == NULL) return 0;
+
+	long num_a = strtol(a->final, NULL, 10);
+	long num_b = strtol(b->final, NULL, 10);
+	if (num_a > num_b) return 1;
+	if (num_a < num_b) return -1;
+	if (num_a == num_b) return 0;
 }
 
 /**
@@ -190,81 +329,6 @@ void sortList(Student_t **head, int low, int high) {
 		int pivot = partitionList(head, low, high);
 		sortList(head, low, pivot - 1);
 		sortList(head, pivot + 1, high);
-	}
-}
-
-/**
- * Function to check if valid name.
- * Valid name contains letters.
- * Checks first last name.
- */
-void addName(char *name, char *type, Student_t *node) {
-	char *error_message = "Error: Invalid first name.";
-
-	// If the name does not contain letters, error.
-	for (int i = 0; i < strlen(name); i++)
-		if (!isalpha(name[i])) callError(error_message);
-	switch (type) {
-		case "first": node->first_name = strdup(name); break;
-		case "last": node->last_name = strdup(name); break;
-		default: callError("Error: Invalid name type.");
-	}
-}
-
-/**
- * Function to check if valid A number.
- * Valid A number contains 8 digits.
- * Starts with 'A'.
- */
-void addANumber(char *a_number, Student_t *node) {
-	char *error_message = "Error: Invalid A number.";
-	if (strlen(a_number) != 8) callError(error_message); // If the a_number is not size of 8, error
-	if (a_number[0] != 'A') callError(error_message); // If the a_number does not start with 'A', error	
-	for (int i = 1; i < strlen(a_number); i++) // If the a_number contains non-digits, error
-		if (!isdigit(a_number[i])) callError(error_message);
-	
-	node->a_number = strdup(a_number);
-	if (node->a_number == NULL) callError(error_message);
-}
-
-/**
- * Function to check if valid grade.
- * Valid grade contains digits.
- */
-void addGrade(char *grade, char *type, Student_t *node) {
-	char *error_message = "Error: Invalid midterm grade.";
-	char *endptr;
-	long val = strtol(grade, &endptr, 10); // Convert string to long
-	if (*endptr != '\0') callError(error_message); // If the grade contains non-digits, error
-	if (val < 0 || val > 100) callError(error_message); // If the grade is not in range, error
-	if (data[0] == '0' && strlen(data) > 1) callError(error_message); // If the grade starts with '0', error
-	switch (type) {
-		case "midterm": node->midterm = strdup(grade); break;
-		case "final": node->final = strdup(grade); break;
-		default: callError("Error: Invalid grade type.");
-	}
-}
-
-/**
- * Function to check if unique A number.
- * If the A number is not unique, error.
- */
-void checkANumber(Student_t *a, Student_t *b) {
-	if (a->a_number == NULL || b->a_number == NULL) return;
-	if (strcmp(a->a_number, b->a_number) == 0) callError("Error: Duplicate A number.");
-}
-
-/**
- * Function to process word into Student struct.
- */
-void processWord(char *word, Student_t *current, int word_count) {
-	switch (word_count) {
-		case 1: addFirstName(word, current); break;
-		case 2: addLastName(word, current); break;
-		case 3: addANumber(word, current); break;
-		case 4: addMidterm(word, current); break;
-		case 5: addFinal(word, current); break;
-		default: callError("Error: Incorrect input format.");
 	}
 }
 
@@ -429,7 +493,7 @@ int main(int argc, char *argv[]) {
 	fseek(file, 0, SEEK_SET); // Ensure cursor at start of file
 
 	const int option = atoi(argv[3]);
-	if (option < 1 || option > 3) {
+	if (option < 1 || option > 5) {
 		printf("Usage %s <input_file> <output_file> <option>\n", argv[0]);
 		callError("Error: Invalid option.");
 	}
