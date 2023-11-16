@@ -1,9 +1,7 @@
 # include <stdio.h>
 # include <stdlib.h>
-# include <stdbool.h>
 # include <string.h>
 # include <ctype.h>
-# include <time.h>
 
 // Global error output
 const char *error_output;
@@ -12,7 +10,7 @@ const char *error_output;
 typedef struct Student {
 	char *first_name; // Alphabet
 	char *last_name; // Alphabet
-	char *number; // A followed by 7 digits
+	char *a_number; // A followed by 7 digits
 	char *midterm; // Ranges from 0 to 100
 	char *final; // Ranges from 0 to 100
 
@@ -63,7 +61,9 @@ void appendList(Student_t **head, Student_t *next) {
 		return;
 	}
 	while (current->next != NULL) {
-		checkANumber(current, next); // Per node, check if A number is unique
+		if (current->a_number != NULL && next->a_number != NULL)
+			if (strcmp(current->a_number, next->a_number) == 0)
+				callError("Error: Duplicate A number.");
 		current = current->next;
 	}
 	current->next = next;
@@ -88,6 +88,7 @@ void freeList(Student_t *head) {
  */
 void checkName(char *name) {
 	char *error_message = "Error: Invalid first name.";
+	if (name == NULL) callError(error_message); // If the name is NULL, error
 	if (strlen(name) == 0) callError(error_message); // If the name is empty, error
 	
 	// If the name does not contain letters, error.
@@ -101,8 +102,10 @@ void checkName(char *name) {
  */
 void checkANumber(char *a_number) {
 	char *error_message = "Error: Invalid A number.";
+	if (a_number == NULL) callError(error_message); // If the a_number is NULL, error
 	if (strlen(a_number) != 8) callError(error_message); // If the a_number is not size of 8, error
 	if (a_number[0] != 'A') callError(error_message); // If the a_number does not start with 'A', error	
+
 	for (int i = 1; i < strlen(a_number); i++) // If the a_number contains non-digits, error
 		if (!isdigit(a_number[i])) callError(error_message);
 }
@@ -115,8 +118,11 @@ void checkANumber(char *a_number) {
  */
 void checkGrade(char *data) {
 	char *error_message = "Error: Invalid midterm grade.";
+	if (data == NULL) callError(error_message); // If the grade is NULL, error
+	
 	char *endptr;
 	long grade = strtol(data, &endptr, 10); // Convert string to long
+
 	if (*endptr != '\0') callError(error_message); // If the grade contains non-digits, error
 	if (data[0] == '0' && strlen(data) > 1) callError(error_message); // If the grade starts with '0', error
 	if (grade < 0 || grade > 100) callError(error_message); // If the grade is not in range, error
@@ -125,16 +131,17 @@ void checkGrade(char *data) {
 int checkAverage(char *midterm, char *final, int option) {
 	checkGrade(midterm);
 	checkGrade(final);
+
 	long midterm_grade = strtol(midterm, NULL, 10); // Convert string to long
-	long final_grade = strtol(final, &endptr, 10); // Convert string to long	
+	long final_grade = strtol(final, NULL, 10); // Convert string to long	
 	long average = (midterm_grade + final_grade) / 2;
-	
+
 	switch (option) {
-		case 1: if (average >= 90 && <= 100) return 0;
-		case 2: if (average >= 80 && average < 90) return 0;
-		case 3: if (average >= 70 && average < 80) return 0;
-		case 4: if (average >= 60 && average < 70) return 0;
-		case 5: if (average >= 0 && average < 60) return 0;
+		case 1: if (average >= 90 && average <= 100) return 0; break;
+		case 2: if (average >= 80 && average < 90) return 0; break;
+		case 3: if (average >= 70 && average < 80) return 0; break;
+		case 4: if (average >= 60 && average < 70) return 0; break;
+		case 5: if (average >= 0 && average < 60) return 0; break;
 		default: callError("Error: Invalid option.");
 	}
 }
@@ -142,11 +149,11 @@ int checkAverage(char *midterm, char *final, int option) {
 /**
  * Function to add name to Student struct.
  */
-void addName(char *name, char *type, Student_t *node) {
+void addName(char *name, const char type, Student_t *node) {
 	checkName(name);
 	switch (type) {
-		case "first": node->first_name = strdup(name); break;
-		case "last": node->last_name = strdup(name); break;
+		case 'F': node->first_name = strdup(name); break;
+		case 'L': node->last_name = strdup(name); break;
 		default: callError("Error: Invalid name type.");
 	}
 }
@@ -159,18 +166,17 @@ void addName(char *name, char *type, Student_t *node) {
 void addANumber(char *a_number, Student_t *node) {
 	checkANumber(a_number);
 	node->a_number = strdup(a_number);
-	if (node->a_number == NULL) callError(error_message);
 }
 
 /**
  * Function to add grade to Student struct.
  * Type is either midterm or final.
  */
-void addGrade(char *grade, char *type, Student_t *node) {
+void addGrade(char *grade, const char type, Student_t *node) {
 	checkGrade(grade);
 	switch (type) {
-		case "midterm": node->midterm = strdup(grade); break;
-		case "final": node->final = strdup(grade); break;
+		case 'M': node->midterm = strdup(grade); break;
+		case 'F': node->final = strdup(grade); break;
 		default: callError("Error: Invalid grade type.");
 	}
 }
@@ -275,67 +281,81 @@ int compareStudents(Student_t *a, Student_t *b) {
 }
 
 /**
- * Function to randomly select a pivot.
- * Returns a random number between low and high.
+ * Function to concatenate two linked lists.
+ * Returns the head of the concatenated linked list.
  */
-int randomPivot(int low, int high) {
-	srand(time(NULL)); // Seed random number generator
-	return rand() % (high - low + 1) + low; // Return random number between low and high
+Student_t* concatList(Student_t *left, Student_t *right) {
+	if (left == NULL) return right;
+	if (right == NULL) return left;
+
+	// Find end of left list
+	Student_t *current = left;
+	while (current->next != NULL) current = current->next;
+
+	// Append right list to end of left list
+	current->next = right;
+	return left;
 }
 
 /**
- * Function to swap two students.
- * Swaps by all fields.
+ * Function to quick sort a linked list.
+ * Returns the head of the sorted linked list.
  */
-void swap(Student_t *a, Student_t *b) {
-	Student_t temp = *a;
-	*a = *b;
-	*b = temp;
-}
+Student_t* quickSort(Student_t **students, int *node_count) {
+	int size;
+	if (node_count != NULL) size = *node_count;
+	else callError("Error: NULL argument.");
+	if (size < 2) return *students;
 
-/**
- * Function to partition the linked list.
- * Partitions by all fields.
- */
-int partitionList(Student_t **head, int low, int high) {
-	Student_t *pivot = *head;
-	for (int i = 0; i < high; i++) pivot = pivot->next;
-	int pivot_index = randomPivot(low, high); // Get random pivot index
-	int i = low - 1;
+	Student_t *pivot = *students;
+	Student_t *left = NULL, *right = NULL;
+	int left_size = 0, right_size = 0;
 
-	for (int j = low; j < high; j++) {
-		Student_t *current = *head;
-		for (int k = 0; k < j; k++) current = current->next; // Get current node
-		if (compareStudents(current, pivot) <= 0) { // Compare current node to pivot
-			i++;
-			Student_t *current_i = *head;
-			for (int k = 0; k < i; k++) current_i = current_i->next;
-			swap(current_i, current);
+	Student_t *current = pivot->next;
+	while (current != NULL) {
+		Student_t *next = current->next;
+		int result = compareStudents(current, pivot);
+		if (result < 0) {
+			current->next = left;
+			left = current;
+			left_size++;
+		} else if (result > 0) {
+			current->next = right;
+			right = current;
+			right_size++;
+		} else {
+			current->next = pivot->next;
+			pivot->next = current;
 		}
+		current = next;
 	}
-	Student_t *current_i = *head;
-	for (int k = 0; k < i + 1; k++) current_i = current_i->next;
-	swap(current_i, pivot);
+	// Recursively sort left and right
+	left = quickSort(&left, &left_size);
+	right = quickSort(&right, &right_size);
 
-	return i + 1;
+	// Combine left, pivot, and right
+	pivot->next = right;
+	return concatList(left, pivot);
 }
 
 /**
- * Function to sort a linked list using quick sort.
- * Sorts by all fields.
+ * Function to process word into Student struct.
  */
-void sortList(Student_t **head, int low, int high) {
-	if (low < high) {
-		int pivot = partitionList(head, low, high);
-		sortList(head, low, pivot - 1);
-		sortList(head, pivot + 1, high);
+void processWord(char *word, Student_t *current, int word_count) {
+	switch (word_count) {
+		case 1: addName(word, 'F', current); break;
+		case 2: addName(word, 'L', current); break;
+		case 3: addANumber(word, current); break;
+		case 4: addGrade(word, 'M', current); break;
+		case 5: addGrade(word, 'F', current); break;
+		default: callError("Error: Incorrect input format.");
 	}
 }
 
 /**
  * Function to read text from input file. 
  */ 
-void readFile(FILE *input, Student_t *head, const int option) {
+void readFile(FILE *input, Student_t *head, int *node_count) {
 	if (input == NULL) callError("Error: Could not read file."); // Error handle reading file
 
 	Student_t *current = head;
@@ -343,6 +363,8 @@ void readFile(FILE *input, Student_t *head, const int option) {
 	char *buffer = (char *) malloc(sizeof(char) * size);
 	if (buffer == NULL) callError("Error: Memory could not be allocated.");
 
+	const int YES = 1;
+	const int NO = 0;
 	char c;
 	char last_char;
 	char *word = buffer; // Pointer to buffer
@@ -350,7 +372,7 @@ void readFile(FILE *input, Student_t *head, const int option) {
 	int word_count = 0;
 	int word_length = 0;
 	int space_count = 0;
-	bool in_word = false;
+	int in_word = NO;
 
 	while ((c = fgetc(input)) != EOF) {
 		if (ferror(input)) { // Error handle reading file
@@ -384,7 +406,7 @@ void readFile(FILE *input, Student_t *head, const int option) {
 			if (!in_word) { // Start of word 
 				word_count++;
 				space_count = 0;
-				in_word = true;
+				in_word = YES;
 			}
 			*word++ = c;
 			word_length++;
@@ -398,7 +420,7 @@ void readFile(FILE *input, Student_t *head, const int option) {
 				word = buffer; // Reset word
 				memset(buffer, 0, 20); // Reset buffer
 				word_length = 0;
-				in_word = false;
+				in_word = NO;
 			}
 			space_count++;
 		}
@@ -412,16 +434,18 @@ void readFile(FILE *input, Student_t *head, const int option) {
 				if (next_char == EOF && characters != 0) break;
 				else callError("Error: Empty line is invalid format.");
 			}
-			
 			// Error handle trailing spaces
 			if (space_count > 1) callError("Error: Trailing spaces is invalid format.");
-			
+		
+			// Append Student to linked list
+			Student_t *new_node = createNode();
+			appendList(&head, new_node);
+			current = new_node;
+			if (current != NULL) node_count++;
+
 			// Reset counts for next line
 			word_count = 0;
 			space_count = 0;
-		
-			// Append Student to linked list
-			appendList(&head, current);
 		}
 		characters++;
 	} // End of while loop
@@ -433,15 +457,20 @@ void readFile(FILE *input, Student_t *head, const int option) {
  * Function to write text to output file.
  * Writes by all fields.
  */
-void writeFile(FILE *output, Student_t *head) {
+void writeFile(FILE *output, const int option, Student_t *head) {
 	Student_t *current = head;
 	while (current != NULL) {
-		if (current->first_name != NULL) fprintf(output, "%s ", current->first_name);
-		if (current->last_name != NULL) fprintf(output, "%s ", current->last_name);
-		if (current->a_number != NULL) fprintf(output, "%s ", current->a_number);
-		if (current->midterm != NULL) fprintf(output, "%s ", current->midterm);
-		if (current->final != NULL) fprintf(output, "%s ", current->final);
-		if (current->next != NULL) fprintf(output, "\n");
+		if (current->midterm != NULL && current->final != NULL) {
+			int average = checkAverage(current->midterm, current->final, option);
+			if (average == 0) {
+				if (current->first_name != NULL) fprintf(output, "%s ", current->first_name);
+				if (current->last_name != NULL) fprintf(output, "%s ", current->last_name);
+				if (current->a_number != NULL) fprintf(output, "%s ", current->a_number);
+				if (current->midterm != NULL) fprintf(output, "%s ", current->midterm);
+				if (current->final != NULL) fprintf(output, "%s ", current->final);
+				if (current->next != NULL) fprintf(output, "\n");
+			}
+		}
 		current = current->next;
 	}
 	// Output file must end with a new line
@@ -461,24 +490,16 @@ void writeFile(FILE *output, Student_t *head) {
  * 		./<name of executable> <input file> <output file> <option>
  *
  * Options as follows:
- * 		[1] Allow for sorting by just domestic students.
- * 		[2] Allow for sorting by just international students.
- * 		[3] Allow for sorting by all students.
+ * 		1: Filters sorted students with average between 90 and 100
+ * 		2: Filters sorted students with average between 80 and 89
+ * 		3: Filters sorted students with average between 70 and 79
+ * 		4: Filters sorted students with average between 60 and 69
+ * 		5: Filters sorted students with average between 0 and 59
  *
  * Example input: 
  * 		"Mary Jackson A01234567 100 100"
  */
 int main(int argc, char *argv[]) {
-	srand(time(NULL)); // Seed random number generator
-
-	char *ANum = "A01351112";
-	FILE *outputFile = fopen(ANum, "w");
-	if (outputFile == NULL) {
-		printf("Error: Failed to create output file.\n");
-		return 1;
-	}
-	fclose(outputFile);
-
 	if (argc != 4) {
 		printf("Usage %s <input_file> <output_file> <option>\n", argv[0]);
 		callError("Error: Invalid number of arguments.");
@@ -498,15 +519,16 @@ int main(int argc, char *argv[]) {
 		callError("Error: Invalid option.");
 	}
 	Student_t *head = createNode();
-	readFile(file, head, option);
-	sortList(&head);
+	int node_count = 0;
+	readFile(file, head, &node_count);
+	head = quickSort(&head, &node_count);
 	fclose(file);
 
 	file = fopen(output_name, "w");
 	if (file == NULL) {
 		callError("Error: Output file could not open.");
 	}
-	writeFile(file, head);
+	writeFile(file, option, head);
 
 	return 0;
 }
