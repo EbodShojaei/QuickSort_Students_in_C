@@ -88,7 +88,7 @@ void freeList(Student_t *head) {
  * Checks first name and last name.
  */
 void checkName(char *name) {
-	char *error_message = "Error: Invalid first name.";
+	char *error_message = "Error: Invalid name.";
 	if (name == NULL) callError(error_message); // If the name is NULL, error
 	if (strlen(name) == 0) callError(error_message); // If the name is empty, error
 	
@@ -118,7 +118,7 @@ void checkANumber(char *a_number) {
  * Is in range of 0 to 100.
  */
 void checkGrade(char *data) {
-	char *error_message = "Error: Invalid midterm grade.";
+	char *error_message = "Error: Invalid grade.";
 	if (data == NULL) callError(error_message); // If the grade is NULL, error
 	
 	char *endptr;
@@ -303,7 +303,6 @@ Student_t* concatList(Student_t *left, Student_t *right) {
  */
 Student_t* quickSort(Student_t **students, int *node_count) {
 	int size;
-	printf("%d\n", *node_count);
 	if (node_count != NULL) size = *node_count;
 	else callError("Error: NULL argument.");
 	if (size < 2) return *students;
