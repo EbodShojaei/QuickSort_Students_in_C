@@ -303,6 +303,7 @@ Student_t* concatList(Student_t *left, Student_t *right) {
  */
 Student_t* quickSort(Student_t **students, int *node_count) {
 	int size;
+	printf("%d\n", *node_count);
 	if (node_count != NULL) size = *node_count;
 	else callError("Error: NULL argument.");
 	if (size < 2) return *students;
@@ -439,8 +440,8 @@ void readFile(FILE *input, Student_t **head, int *node_count) {
 		
 			// Append Student to linked list
 			appendList(head, current);
+			if (current != NULL) (*node_count)++;
 			current = createNode();
-			if (current != NULL) node_count++;
 
 			// Reset counts for next line
 			word_count = 0;
