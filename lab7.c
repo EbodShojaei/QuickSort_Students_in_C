@@ -55,19 +55,24 @@ Student_t *createNode() {
  * If the head is NULL, then the head is the node.
  */
 void appendList(Student_t **head, Student_t *new_node) {
+	if (head == NULL || new_node == NULL) callError("Error: NULL argument.");
 	Student_t *current = *head;
 
 	if (current == NULL) {
 		*head = new_node;
 		return;
 	}
-	while (current->next != NULL) {
+	while (current != NULL) {
 		if (current->a_number != NULL && new_node->a_number != NULL)
 			if (strcmp(current->a_number, new_node->a_number) == 0)
 				callError("Error: Duplicate A number.");
+		
+		if (current->next == NULL) {
+			current->next = new_node; 
+			break;
+		}
 		current = current->next;
 	}
-	current->next = new_node;
 }
 
 /**
