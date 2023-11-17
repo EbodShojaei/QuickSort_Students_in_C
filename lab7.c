@@ -136,15 +136,18 @@ int checkAverage(char *midterm, char *final, int option) {
 	long midterm_grade = strtol(midterm, NULL, 10); // Convert string to long
 	long final_grade = strtol(final, NULL, 10); // Convert string to long	
 	long average = (midterm_grade + final_grade) / 2;
+	int result = 1;
 
 	switch (option) {
-		case 1: if (average >= 90 && average <= 100) return 0; break;
-		case 2: if (average >= 80 && average < 90) return 0; break;
-		case 3: if (average >= 70 && average < 80) return 0; break;
-		case 4: if (average >= 60 && average < 70) return 0; break;
-		case 5: if (average >= 0 && average < 60) return 0; break;
+		case 1: if (average >= 90 && average <= 100) result = 0; break;
+		case 2: if (average >= 80 && average < 90) result = 0; break;
+		case 3: if (average >= 70 && average < 80) result = 0; break;
+		case 4: if (average >= 60 && average < 70) result = 0; break;
+		case 5: if (average >= 0 && average < 60) result = 0; break;
 		default: callError("Error: Invalid option.");
 	}
+
+	return result;
 }
 
 /**
@@ -225,6 +228,8 @@ int compareByANumber(Student_t *a, Student_t *b) {
 	long num_b = strtol(b->a_number + 1, NULL, 10);
 	if (num_a > num_b) return 1;
 	if (num_a < num_b) return -1;
+
+	return 0;
 }
 
 /**
@@ -243,6 +248,8 @@ int compareByMidterm(Student_t *a, Student_t *b) {
 	if (num_a > num_b) return 1;
 	if (num_a < num_b) return -1;
 	if (num_a == num_b) return 0;
+
+	return 0;
 }
 
 /**
@@ -261,6 +268,8 @@ int compareByFinal(Student_t *a, Student_t *b) {
 	if (num_a > num_b) return 1;
 	if (num_a < num_b) return -1;
 	if (num_a == num_b) return 0;
+
+	return 0;
 }
 
 /**
